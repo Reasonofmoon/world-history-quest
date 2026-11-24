@@ -76,6 +76,16 @@ main{max-width:860px;margin:0 auto;padding:18px 16px 80px;display:flex;flex-dire
 .blk{border:0;border-bottom:2px solid var(--ink);background:var(--soft);border-radius:4px 4px 0 0;padding:1px 4px;text-align:center;font-weight:700;min-width:3em}
 .blk.ok{background:transparent;color:var(--ok);border-color:var(--ok)}
 .blk.no{color:var(--bad);border-color:var(--bad)}
+.mode-intro h2{font-size:1.35rem}.mode-intro p{margin:4px 0}.mode-intro>p:first-child{font-weight:700;color:var(--accent)}
+.mode-actions{margin:10px 0 14px}.mode-actions [aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.study-answer{color:var(--accent);background:var(--soft);padding:1px 5px;border-radius:4px;font-weight:700}.study-mask{color:var(--muted);background:var(--soft);padding:1px 5px;border-radius:4px}
+.blank-unit{display:inline-block;max-width:100%;vertical-align:baseline}.blank-unit select,.blank-unit input{min-height:38px;max-width:100%;padding:2px 5px;border:1px solid var(--line);border-bottom:2px solid var(--accent);background:var(--soft);border-radius:6px;font-size:.94rem;color:var(--ink)}
+.blank-unit .ok{background:transparent;color:var(--ok);border-color:var(--ok)}.blank-unit .no{color:var(--bad);border-color:var(--bad)}
+.answer-help{margin:8px 0}.answer-help.compact{display:inline;margin:0 3px 0 2px}.answer-help .hint-box,.answer-help .answer-box{margin-top:8px}.hint-text{color:var(--muted)}
+.compact .hint-box,.compact .answer-box{margin:0 2px}.compact .hint-text,.compact .answer-box{font-size:.85rem}.compact .answer-box{color:var(--accent)}
+.mini-help{min-height:34px;border:1px solid var(--line);background:var(--surface);border-radius:6px;padding:2px 5px;font-size:.78rem;color:var(--accent);margin:0 2px;white-space:nowrap}
+.answer-help:not(.compact) .hint-text{margin-bottom:8px}
+@media (max-width:560px){.blank-unit select{max-width:min(100%,56vw)}.answer-help.compact{margin-left:0}}
 .bank{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px}
 .btn{border:1px solid var(--ink);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:700}
@@ -148,7 +158,7 @@ table{border-collapse:collapse;width:100%}td,th{border:1px solid var(--line);pad
 'use strict';
 function blank(){return {done:{},xp:0,wrong:[],mn:{},yr:{},tests:{},res:{},nick:'',mock:null,board:{}}}
 var D=null, S=blank(), ui={}, timers=[];
-var STEPS=[['sum','핵심 정리'],['card','용어 카드'],['ox','○× 퀴즈'],['order','순서 세우기'],['mcq','실전 문항'],['essay','서술형'],['mn','기억법'],['video','영상']];
+var STEPS=[['study','학습 모드'],['sum','핵심 정리'],['card','용어 카드'],['ox','○× 퀴즈'],['order','순서 세우기'],['mcq','실전 문항'],['essay','서술형'],['mn','기억법'],['video','영상']];
 var CORE=['sum','card','ox','order','mcq','essay'];
 var C='①②③④⑤';
 function load(){try{var t=localStorage.getItem('hist1-progress');if(t){var o=JSON.parse(t);for(var k in o)S[k]=o[k];}}catch(e){}}
@@ -184,7 +194,7 @@ function viewHome(){
   D.lessons.forEach(function(l){CORE.forEach(function(c){if(isDone(l.no,c))got++})});
   var next=D.lessons.filter(function(l){return !CORE.every(function(c){return isDone(l.no,c)})})[0]||D.lessons[0];
   var h='<section class="card hero"><div><canvas id="morph" width="340" height="340" aria-hidden="true"></canvas><div class="morphcap" id="morphcap" style="text-align:center"></div></div><div>'+
-    '<h1>송의 건국부터 신해혁명까지, 19차시</h1><p>차시마다 핵심 정리, 용어 카드, ○× 퀴즈, 순서 세우기, 실전 문항, 서술형을 차례로 풉니다. 시험 대비 화면에서 범위 전체를 요소별로 점검하고 모의고사를 볼 수 있습니다.</p>'+
+    '<h1>송의 건국부터 신해혁명까지, 19차시</h1><p>차시마다 학습 모드에서 정답이 채워진 내용을 읽고, 핵심 정리에서 선택 또는 직접 입력으로 복습합니다. 이후 용어 카드와 퀴즈를 풉니다. 시험 대비 화면에서 범위 전체를 요소별로 점검하고 모의고사를 볼 수 있습니다.</p>'+
     '<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="'+tot+'" aria-valuenow="'+got+'"><i id="pbar"></i></div><p class="muted">'+got+' / '+tot+' 활동 완료</p>'+
     '<div class="row"><button class="btn pri" data-go="lesson-'+pad(next.no)+'">'+(got?'이어서 하기':'시작하기')+': '+pad(next.no)+' '+esc(next.title)+'</button></div></div></section>';
   D.parts.forEach(function(p,i){
@@ -230,27 +240,175 @@ function morph(){
 /* ---------- lesson ---------- */
 function viewLesson(no,step){
   clearTimers();
-  var l=L(no);step=step||ui.step||'sum';ui.step=step;ui.no=no;
+  var l=L(no);step=step||'study';ui.step=step;ui.no=no;
   var h='<section class="card"><div class="lhead"><span class="n">'+pad(no)+'</span><div><small>'+D.parts[l.part].r+'. '+esc(D.parts[l.part].t)+' · 교과서 '+esc(l.pages)+'쪽</small><h1>'+esc(l.title)+'</h1></div></div>'+
     '<div class="steps" role="tablist" style="margin-top:12px">'+STEPS.map(function(s){return '<button role="tab" data-step="'+s[0]+'" aria-selected="'+(s[0]===step)+'" class="'+(isDone(no,s[0])?'ok':'')+'">'+s[1]+'</button>'}).join('')+'</div></section>'+
     '<section class="card" id="stage"></section>'+
     '<div class="row" style="margin:0">'+(no>1?'<button class="btn ghost" data-go="lesson-'+pad(no-1)+'">← '+pad(no-1)+' 차시</button>':'')+(no<D.lessons.length?'<button class="btn ghost" style="margin-left:auto" data-go="lesson-'+pad(no+1)+'">'+pad(no+1)+' 차시 →</button>':'')+'</div>';
   $('#app').innerHTML=h;
-  ({sum:stSum,card:stCard,ox:stOX,order:stOrder,mcq:stMCQ,essay:stEssay,mn:stMn,video:stVideo})[step](l,$('#stage'));
+  ({study:stStudy,sum:stSum,card:stCard,ox:stOX,order:stOrder,mcq:stMCQ,essay:stEssay,mn:stMn,video:stVideo})[step](l,$('#stage'));
 }
 function nextBtn(no,st){var i=STEPS.findIndex(function(s){return s[0]===st});return i<STEPS.length-1?'<button class="btn pri" data-step="'+STEPS[i+1][0]+'">다음: '+STEPS[i+1][1]+' →</button>':''}
-function stSum(l,el){
-  var ans=[], h='<div class="key"><b>오늘의 핵심</b> '+esc(l.key)+'</div><p class="muted" style="margin:10px 0 0">빈칸에 알맞은 말을 써 넣고 채점합니다. 막히면 낱말 창고를 엽니다.</p><div class="sum">';
-  l.summary.forEach(function(sec){h+='<h3>'+esc(sec[0])+'</h3><ul>'+sec[1].map(function(line){return '<li>'+esc(line).replace(/\[\[(.+?)\]\]/g,function(_,a){ans.push(a);return '<input class="blk" id="b'+(ans.length-1)+'" type="text" autocomplete="off" aria-label="빈칸 '+ans.length+'" style="width:'+Math.max(3.4,a.length*1.15+1.2)+'em">'})+'</li>'}).join('')+'</ul>'});
-  h+='</div><div class="row"><button class="btn pri" id="chk">채점하기</button><button class="btn ghost" id="bankb">낱말 창고 열기</button><button class="btn ghost" id="showall">정답 모두 보기</button><span id="res" class="muted"></span></div><div class="bank" id="bank" hidden>'+shuffle(ans.filter(function(a,i){return ans.indexOf(a)===i})).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join('')+'</div>'+
-    '<div class="viz"><b>흐름 보기</b><div class="flow" id="flow">'+l.order[1].map(function(s,i){return (i?'<em>→</em>':'')+'<span>'+esc(s)+'</span>'}).join('')+'</div>'+special(l.no)+'</div><div class="row" id="nx"></div>';
-  el.innerHTML=h;
-  var sp=el.querySelectorAll('#flow span'),k=0;if(sp.length){sp[0].classList.add('on');timers.push(setInterval(function(){sp[k].classList.remove('on');k=(k+1)%sp.length;sp[k].classList.add('on')},1100))}
+function lessonSummary(l,renderBlank){
+  var idx=0;
+  return '<div class="sum">'+l.summary.map(function(sec){return '<h3>'+esc(sec[0])+'</h3><ul>'+sec[1].map(function(line){
+    return '<li>'+line.split(/\[\[(.+?)\]\]/g).map(function(s,i){return i%2?renderBlank(s,idx++):esc(s)}).join('')+'</li>';
+  }).join('')+'</ul>'}).join('')+'</div>';
+}
+function stStudy(l,el){
+  el.innerHTML='<div class="mode-intro"><p class="muted">먼저 읽기 · 다음에 빈칸 풀기</p><h2>학습 모드</h2><p>강조된 정답을 포함해 문장을 읽으세요. 기억이 나는지 확인하려면 정답을 가려 보세요.</p></div>'+
+    '<div class="row mode-actions"><button class="btn pri" data-step="sum">핵심 정리 풀기 →</button><button class="btn ghost" id="study-toggle" aria-expanded="true" aria-controls="study-text study-flow">정답 가리기</button></div>'+
+    '<section id="study-text"><div class="key" id="study-key"><b>오늘의 핵심</b> '+esc(l.key)+'</div>'+lessonSummary(l,function(a){return '<mark class="study-answer">'+esc(a)+'</mark><span class="study-mask" hidden aria-label="가려진 정답">▁▁▁</span>'})+'</section>'+
+    '<div id="study-flow" class="viz"><b>흐름 보기</b><div class="flow">'+l.order[1].map(function(s,i){return (i?'<em>→</em>':'')+'<span>'+esc(s)+'</span>'}).join('')+'</div>'+special(l.no)+'</div>'+
+    '<div class="row">'+nextBtn(l.no,'study')+'</div>';
+  var shown=true;
+  $('#study-toggle',el).onclick=function(){
+    shown=!shown;
+    el.querySelectorAll('.study-answer, #study-key, #study-flow').forEach(function(x){x.hidden=!shown});
+    el.querySelectorAll('.study-mask').forEach(function(x){x.hidden=shown});
+    this.textContent=shown?'정답 가리기':'정답 보이기';this.setAttribute('aria-expanded',String(shown));
+  };
   animSpecial(l.no);
-  $('#bankb').onclick=function(){var b=$('#bank');b.hidden=!b.hidden;this.textContent=b.hidden?'낱말 창고 열기':'낱말 창고 닫기'};
-  function grade(fill){var ok=0;ans.forEach(function(a,i){var inp=$('#b'+i);if(fill){inp.value=a}var good=norm(inp.value)===norm(a);inp.classList.toggle('ok',good);inp.classList.toggle('no',!good&&inp.value!=='');if(good)ok++});
-    $('#res').textContent=ok+' / '+ans.length+' 정답';if(ok===ans.length){if(!fill)mark(l.no,'sum',20);else mark(l.no,'sum',5);$('#nx').innerHTML=nextBtn(l.no,'sum');refreshTabs(l.no)}}
-  $('#chk').onclick=function(){grade(false)};$('#showall').onclick=function(){grade(true)};
+}
+/* Banks group confusable people, places, and concepts; extra examples keep every blank four-choice. */
+var SUM_BANKS=[
+  '조광윤 왕안석 주원장 정화 이자성 홍수전 쑨원 위안스카이',
+  '칭기즈_칸 쿠빌라이_칸 영락제 누르하치 홍타이지 강희제 옹정제 건륭제',
+  '바부르 아크바르 아우랑제브 샤_자한 메흐메트_2세 술레이만_1세 오스만_1세 셀림_1세',
+  '콜럼버스 바스쿠_다_가마 마젤란 디아스',
+  '루터 칼뱅 츠빙글리 헨리_8세',
+  '찰스_1세 제임스_2세 루이_14세 표트르_대제 펠리페_2세 엘리자베스_1세',
+  '크롬웰 뉴턴 로크 몽테스키외 루소 볼테르',
+  '워싱턴 로베스피에르 나폴레옹 링컨 제퍼슨 루이_16세',
+  '카보우르 가리발디 비스마르크 메테르니히',
+  '와트 스티븐슨 뉴커먼 풀턴',
+  '요 금 남송 원 후금 청 명 서하',
+  '비잔티움 무굴_제국 영국령_인도_제국 오스만_제국 사파비_왕조',
+  '대도 난징 베이징 광저우 우창 상하이',
+  '이스탄불 빈 아우크스부르크 베스트팔렌 로마 파리',
+  '자금성 타지마할 베르사유_궁전 아야_소피아',
+  '요크타운 바스티유 파쇼다 콜카타 홍콩 필라델피아',
+  '포르투갈 에스파냐 러시아 사르데냐 프랑스 프로이센',
+  '라이베리아 에티오피아 이집트 알제리',
+  '인도 베트남 인도네시아 필리핀 미얀마 말레이반도',
+  '아시아 서양 대서양 북부 유럽 태평양 남부',
+  '절도사 문신 사대부 재상 황제 대통령 술탄 술탄_칼리프',
+  '색목인 힌두교도 몽골인 한인 시크교도',
+  '왜구 예니체리 세포이 상비군 군대',
+  '노예 대표 제3신분 산업_자본가 아동 자본가 노동자 농민',
+  '잉카 아스테카 마야 무이스카',
+  '문치주의 몽골_제일주의 조공·책봉 회유책 강압책 변발 철혈_정책 중체서용',
+  '전시 이갑제 관료제 울루스 역참 밀레트 군기처 시박사',
+  '육유 권리_청원 권리_장전 독립_선언문 인권_선언 인민헌장 노예_해방_선언',
+  '교자 교초 동전 은화',
+  '동방견문록 잡극 성리학 농서 사서백과 화본 송사',
+  '나침반 증기_기관 증기선 대륙_횡단_철도 활판_인쇄기 석탄 철',
+  '지즈야 세금 배상금 관세 헌금',
+  '이슬람 시크교 영국_국교회 신교 천주교 불교',
+  '면벌부 95개조_반박문 예정설 믿음 교회의_권위 선행 대사',
+  '관용 능력 균등 계약 부활 철회 배제 특권 통합 금지 신분 성과 세습',
+  '왕권신수설 계몽사상 사회_진화론 인종주의 자유주의 민족주의 사회주의 삼민주의',
+  '절대_왕정 공화정 입헌_군주제 연방제 삼권_분립 민주_공화국 왕권 구제도',
+  '중상주의 가격_혁명 삼각_무역 보호 자유 불매 스와데시 스와라지 수출 수입',
+  '식민지 상공업 대농장 시장 공업 영토 농업 교역소',
+  '전염병 모직물 면직물 아편 차 비단 설탕 담배 은',
+  '임진왜란 30년_전쟁 청일_전쟁 플라시_전투 보스턴_차_사건 프랑스_혁명 7월_혁명 2월_혁명',
+  '대륙_회의 삼부회 국민_의회 관세_동맹 동인도_회사 인도_국민_회의 중국_동맹회',
+  '파리_조약 난징_조약 신축_조약 베이징_조약 시모노세키_조약',
+  '대륙_봉쇄령 벵골_분할령 영사_재판권 최혜국_대우 조차권 개항',
+  '반대 찬성 기권 유보',
+  '머릿수 신분별_표결 재산_규모 지역별_표결',
+  '인클로저 빈부_격차 러다이트 노동조합 인구_이동 공장제',
+  '양무운동 변법자강_운동 메이지_유신 태평천국_운동 신해혁명',
+  '군사력 경제력 외교력 인구',
+  '종단 횡단 해안_장악 도서_장악',
+  '정치 기술 정치_제도 교육_제도 경제_정책 군사_전략',
+  '민족 민권 민생 군주권 자치권 왕정 중화민국 대한_제국 중화_제국 청나라',
+  '홍건적 태평군 의화단 신군',
+  '신항로 실크로드 초원길 향신료_교역로'
+].map(function(g){return g.replace(/_/g,'\u00a0').split(' ').map(function(a){return a.replace(/\u00a0/g,' ')})});
+/* These short or tightly paired terms benefit from context-specific distractors. */
+var SUM_DISTRACTORS={
+  '무적함대':['동인도 회사','상비군','기사단'], '차티스트':['러다이트','노동조합','산업 자본가'],
+  '비잔티움':['오스만','사파비','무굴'],
+  '쑨원':['위안스카이','홍수전','캉유웨이'], '능력':['혈통','재산','신분'],
+  '보호':['자유','중계','삼각'], '자유':['보호','중계','삼각'],
+  '민족':['군주','계급','종교'], '민권':['군주권','신권','특권'], '민생':['왕권','군권','분권'],
+  '중화민국':['중화 제국','대한 제국','중화인민공화국'],
+  '수출':['수입','중계 무역','관세 인하'], '수입':['수출','중계 무역','관세 인상'],
+  '철회':['연장','확대','강행'], '부활':['폐지','축소','유예'], '균등':['신분별','재산별','직업별'],
+  '종단':['횡단','해안 봉쇄','도서 점령'], '횡단':['종단','해안 봉쇄','도서 점령'],
+  '힌두교도':['불교도','시크교도','이슬람교도'], '면벌부':['권리 청원','예정설 문서','95개조 반박문'],
+  '정치':['경제','농업','종교'], '남송':['북송','서하','금'], '시박사':['군기처','삼사','역참'],
+  '재상':['황제','지방관','군주'], '잉카':['아스테카','마야','무이스카'],
+  '권리 청원':['마그나 카르타','권리 장전','인민헌장'], '권리 장전':['권리 청원','인민헌장','인권 선언'],
+  '자본가':['노동자','농민','노예'], '노동자':['자본가','귀족','지주'],
+  '중체서용':['변법자강','문치주의','삼민주의'], '스와데시':['스와라지','벵골 분할','식민지 자치'],
+  '스와라지':['스와데시','벵골 분할','식민지 확대'], '머릿수':['신분별','재산별','지역별']
+};
+function sumChoices(a){
+  var group=SUM_BANKS.find(function(g){return g.indexOf(a)>=0})||[];
+  var wrong=(SUM_DISTRACTORS[a]||shuffle(group.filter(function(b){return b!==a}))).slice(0,3);
+  return shuffle([a].concat(wrong));
+}
+function blankHint(a){
+  var chars=Array.from(a).filter(function(c){return /[\p{L}\p{N}]/u.test(c)});
+  var letters=chars.map(function(c){var code=c.charCodeAt(0)-0xac00;return code>=0&&code<=11171?'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ'[Math.floor(code/588)]:'○'}).join('');
+  return '초성 '+letters+' · '+chars.length+'글자';
+}
+function answerHelp(id,hint,answer,compact,label){
+  var tag=compact?'span':'div', btn=compact?'mini-help':'btn ghost';
+  return '<'+tag+' class="answer-help'+(compact?' compact':'')+'" data-help="'+id+'">'+
+    '<button type="button" class="'+btn+'" data-hint aria-expanded="false" aria-controls="'+id+'-hint"'+(label?' aria-label="'+label+' 1단계 힌트"':'')+'>'+(compact?'힌트':'1단계 힌트')+'</button>'+
+    '<'+tag+' class="hint-box" id="'+id+'-hint" hidden><'+tag+' class="hint-text">'+hint+'</'+tag+'>'+ 
+    '<button type="button" class="'+btn+'" data-answer aria-expanded="false" aria-controls="'+id+'-answer">정답 보기</button>'+
+    '<'+tag+' class="answer-box" id="'+id+'-answer" hidden>'+answer+'</'+tag+'></'+tag+'></'+tag+'>';
+}
+function wireAnswerHelp(root,onReveal){
+  root.querySelectorAll('[data-help]').forEach(function(w){
+    var id=w.dataset.help,hb=$('[data-hint]',w),ab=$('[data-answer]',w),hint=$('#'+id+'-hint',w),answer=$('#'+id+'-answer',w);
+    function setAnswer(shown){answer.hidden=!shown;ab.textContent=shown?'정답 가리기':'정답 보기';ab.setAttribute('aria-expanded',String(shown))}
+    hb.onclick=function(){hint.hidden=!hint.hidden;hb.setAttribute('aria-expanded',String(!hint.hidden));if(hint.hidden)setAnswer(false)};
+    ab.onclick=function(){var reveal=answer.hidden;setAnswer(reveal);if(reveal&&onReveal)onReveal(id)};
+  });
+}
+function stSum(l,el){
+  var answers=[], forms=[], d=(ui.sumDrafts||(ui.sumDrafts={}))[l.no];
+  if(!d){d={pick:[],type:[],choices:[]};ui.sumDrafts[l.no]=d}
+  var mode=ui.sumMode||'pick';
+  var h='<div class="mode-intro"><p class="muted">빈칸 복습</p><h2>핵심 정리</h2><p>빈칸을 풀고 채점하세요. 막히면 각 빈칸의 힌트를 먼저 열어 보세요.</p></div>'+
+    '<div class="row mode-actions" role="group" aria-label="빈칸 풀이 방식"><button type="button" class="btn" data-sum-mode="pick" aria-pressed="'+(mode==='pick')+'">선택 모드</button><button type="button" class="btn" data-sum-mode="type" aria-pressed="'+(mode==='type')+'">직접 입력</button></div>'+
+    lessonSummary(l,function(a,i){
+      answers.push(a);var name='빈칸 '+(i+1), id='b'+i;
+      if(!d.choices[i])d.choices[i]=sumChoices(a);
+      var select='<select class="blk" id="'+id+'" aria-label="'+name+'"><option value="">고르기</option>'+d.choices[i].map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>'}).join('')+'</select>';
+      var input='<input class="blk" id="'+id+'" type="text" autocomplete="off" aria-label="'+name+'" style="width:'+Math.min(13,Math.max(4,a.length*1.08+1.5))+'em">';
+      return '<span class="blank-unit">'+(mode==='pick'?select:input)+'</span>'+answerHelp('blank-help-'+i, esc(blankHint(a)), '<b>정답: '+esc(a)+'</b>',true,name);
+    })+
+    '<div class="row"><button class="btn pri" id="chk">채점하기</button>'+(mode==='type'?'<button class="btn ghost" id="bankb" aria-controls="bank" aria-expanded="false">낱말 창고 열기</button>':'')+'<span id="res" class="muted" role="status"></span></div>'+
+    (mode==='type'?'<div class="bank" id="bank" hidden>'+shuffle(Array.from(new Set(answers))).map(function(a){return '<span class="chip">'+esc(a)+'</span>'}).join('')+'</div>':'')+
+    '<div class="row" id="nx">'+(isDone(l.no,'sum')?nextBtn(l.no,'sum'):'')+'</div>';
+  el.innerHTML=h;wireAnswerHelp(el);
+  var res=$('#res',el);
+  answers.forEach(function(a,i){
+    var field=$('#b'+i,el);forms.push(field);field.value=d[mode][i]||'';
+    field.addEventListener(mode==='pick'?'change':'input',function(){d[mode][i]=field.value;field.classList.remove('ok','no');field.removeAttribute('aria-invalid');res.textContent=''});
+  });
+  el.querySelectorAll('[data-sum-mode]').forEach(function(b){b.onclick=function(){
+    var next=b.dataset.sumMode;if(next===mode)return;
+    ui.sumMode=next;stSum(l,el);$('[data-sum-mode="'+next+'"]',el).focus();
+  }});
+  var bankb=$('#bankb',el);if(bankb)bankb.onclick=function(){var b=$('#bank',el);b.hidden=!b.hidden;this.textContent=b.hidden?'낱말 창고 열기':'낱말 창고 닫기';this.setAttribute('aria-expanded',String(!b.hidden))};
+  $('#chk',el).onclick=function(){
+    var correct=0, empty=0;
+    forms.forEach(function(field,i){var filled=!!norm(field.value), good=filled&&norm(field.value)===norm(answers[i]);
+      field.classList.toggle('ok',good);field.classList.toggle('no',filled&&!good);
+      if(filled&&!good)field.setAttribute('aria-invalid','true');else field.removeAttribute('aria-invalid');
+      if(good)correct++;if(!filled)empty++;
+    });
+    res.textContent=correct+' / '+answers.length+' 정답'+(empty?' · 빈칸 '+empty+'개 남음':'');
+    if(correct===answers.length){mark(l.no,'sum',20);$('#nx',el).innerHTML=nextBtn(l.no,'sum');refreshTabs(l.no)}
+  };
 }
 function refreshTabs(no){document.querySelectorAll('.steps button').forEach(function(b){b.classList.toggle('ok',isDone(no,b.dataset.step))})}
 function special(no){
@@ -309,13 +467,46 @@ function quiz(el,qs,opt){
   q();
 }
 function stMCQ(l,el){quiz(el,l.mcq,{done:function(s){el.innerHTML='<p class="big">'+s+' / '+l.mcq.length+' 정답</p><p class="muted">틀린 문항은 오답 노트에 모였습니다.</p><div class="row"><button class="btn" id="again">다시 풀기</button>'+nextBtn(l.no,'mcq')+'</div>';mark(l.no,'mcq',s===l.mcq.length?25:15);refreshTabs(l.no);if(s===l.mcq.length)burst();$('#again').onclick=function(){stMCQ(l,el)}}})}
+var ESSAY_HINTS=[
+  ['황제와 지방 군사 세력의 관계, 북방 민족과의 관계를 나누어 생각해 보세요.','기술 한 가지를 고르고, 이전에는 어려웠던 어떤 일이 가능해졌는지 떠올려 보세요.'],
+  ['정복한 집단과 정복당한 집단을 위에서 아래로 나누고, 차별받은 쪽의 반응을 떠올려 보세요.','넓은 지역이 하나의 제국으로 이어지면 사람과 상품의 이동이 어떻게 달라질까요?'],
+  ['중앙에서는 황제와 재상의 관계, 농촌에서는 가구를 묶어 관리한 방식을 떠올려 보세요.','명의 황제는 무엇을 인정받고, 주변국은 무엇을 인정받거나 얻었는지 나누어 보세요.'],
+  ['한족이 청에 협력하도록 한 조치와 한족에게 따르도록 강제한 조치를 하나씩 떠올려 보세요.','두 왕조에서 한족이 관직에 오를 기회와 대우가 어떻게 달랐는지 비교해 보세요.'],
+  ['통치자의 종교와 다수 주민의 종교가 달랐다는 점에서 출발해 보세요.','건물의 설계·장식에서 어느 문화들의 요소가 함께 보이는지 생각해 보세요.'],
+  ['서로 다른 종교 공동체가 내부 문제를 어떻게 처리했는지 먼저 생각해 보세요.','예니체리의 출신과 교육, 그리고 이들이 맡을 수 있었던 일을 연결해 보세요.'],
+  ['아메리카는 원주민의 변화, 아프리카는 대서양을 건넌 사람들의 처지에 주목해 보세요.','은의 유입 이후 물가가 어떻게 변했고, 소득이 고정된 사람과 거래하는 사람 중 누가 유리했는지 생각해 보세요.'],
+  ['루터가 비판한 당시 교회의 관행과, 그가 구원에 필요하다고 본 것을 구분해 보세요.','처음 인정된 종파와 나중에 추가로 인정된 종파를 시간 순서대로 떠올려 보세요.'],
+  ['평소에도 군대와 관리 조직을 유지하려면 계속 무엇이 필요할지 생각해 보세요.','재정을 마련하는 정책, 군사 조직, 행정 조직의 세 영역으로 나누어 보세요.'],
+  ['법을 만들거나 세금을 정할 때 왕과 의회 중 누구의 동의가 더 중요해졌는지 생각해 보세요.','왕이 어떻게 물러났는지와 그 후 어떤 정치 체제가 자리 잡았는지를 각각 비교하세요.'],
+  ['세금을 결정하는 곳에 식민지인의 대표가 있었는지 생각하고, 항의와 영국의 대응을 순서대로 이어 보세요.','중앙과 주의 권한, 정부 기관끼리의 권한 중 어떤 예가 있는지 생각해 보세요.'],
+  ['각 신분이 나라에 부담한 의무와 누린 특권을 서로 비교해 보세요.','점령 지역에 전해진 제도와, 점령에 맞선 사람들이 공유하게 된 의식을 구분해 보세요.'],
+  ['개인에게 중요한 가치와 민족 집단에 중요한 가치를 나누고, 왕조의 입장에서 생각해 보세요.','통일을 이끈 중심 국가와 그 나라의 지도자를 짝지은 뒤, 두 과정의 공통점을 찾으세요.'],
+  ['북부와 남부를 두 열로 놓고, 생계의 기반·관세·노예제 확대라는 세 기준으로 채워 보세요.','노예의 법적 지위와 전쟁 뒤 경제의 중심이 어떻게 달라졌는지 생각해 보세요.'],
+  ['기계를 돌릴 자원, 공장에 필요한 노동력, 상품을 팔 시장이라는 세 관점에서 생각해 보세요.','생산량과 노동환경이 어떻게 바뀌었는지, 노동자들은 무엇을 요구했는지 떠올려 보세요.'],
+  ['생존 경쟁 논리와 인종 간 우열 논리가 침략을 어떻게 합리화했는지 생각해 보세요.','지도를 떠올려 두 나라의 진출 방향과 만나는 지점을 찾아보세요.'],
+  ['항쟁 전후 인도에서 지배권을 행사한 주체가 누구였는지 비교해 보세요.','영국 상품과 인도 상품을 각각 어떻게 대했는지, 분할령이 결국 어떻게 되었는지 떠올려 보세요.'],
+  ['무역·영토·재판 가운데 청의 권리가 줄어든 사례를 골라 누가 이익을 얻었는지 설명해 보세요.','자기 나라의 무엇은 그대로 두고, 서양의 무엇만 들여오려 했는지 구분해 보세요.'],
+  ['운동 세력이 지키려 한 왕조와 배척한 세력을 떠올리고, 패배 뒤 청이 부담한 조건을 찾아보세요.','기술만 바꾸려는 것, 제도를 바꾸려는 것, 나라의 정치 체제 자체를 바꾸려는 것을 구분해 보세요.']
+];
 function stEssay(l,el){
-  var h='';l.essay.forEach(function(e,i){h+='<div style="margin-bottom:18px"><p class="big" style="font-size:1.05rem">서술형 '+(i+1)+'. '+esc(e.q)+'</p><textarea id="es'+i+'" aria-label="서술형 '+(i+1)+' 답안" placeholder="답을 먼저 써 봅니다."></textarea><div class="row"><button class="btn" data-es="'+i+'">모범 답안과 채점 기준 보기</button></div><div id="em'+i+'"></div></div>'});
-  el.innerHTML=h+'<div class="row" id="nx">'+(isDone(l.no,'essay')?nextBtn(l.no,'essay'):'')+'</div>';
-  var shown={};el.querySelectorAll('[data-es]').forEach(function(b){b.onclick=function(){var i=+b.dataset.es,e=l.essay[i];if($('#es'+i).value.trim().length<10){$('#em'+i).innerHTML='<div class="fb no">답을 한 문장 이상 쓴 뒤에 볼 수 있습니다.</div>';return}
-    $('#em'+i).innerHTML='<div class="fb ok"><b>모범 답안</b><br>'+esc(e.model)+'</div><div class="rub" style="margin-top:8px"><b>스스로 채점하기</b>'+e.rubric.map(function(r,k){return '<label><input type="checkbox" id="rb'+i+'_'+k+'" data-p="'+r[0]+'" data-e="'+i+'"><span>'+r[0]+'점 · '+esc(r[1])+'</span></label>'}).join('')+'<p id="sc'+i+'" class="muted">0 / 5점</p></div>';
-    el.querySelectorAll('[data-e="'+i+'"]').forEach(function(c){c.onchange=function(){var s=0;el.querySelectorAll('[data-e="'+i+'"]').forEach(function(x){if(x.checked)s+=+x.dataset.p});$('#sc'+i).textContent=s+' / 5점'}});
-    shown[i]=1;if(Object.keys(shown).length===l.essay.length){mark(l.no,'essay',20);$('#nx').innerHTML=nextBtn(l.no,'essay');refreshTabs(l.no)}}});
+  var reviewed={};
+  el.innerHTML=l.essay.map(function(e,i){
+    var hint=ESSAY_HINTS[l.no-1]&&ESSAY_HINTS[l.no-1][i]||'문제에서 요구한 요소를 나누고, 각각에 해당하는 역사 용어를 떠올려 보세요.';
+    var rubric=e.rubric.map(function(r){return '<label><input type="checkbox" data-p="'+r[0]+'" data-e="'+i+'"><span>'+r[0]+'점 · '+esc(r[1])+'</span></label>'}).join('');
+    return '<section style="margin-bottom:18px"><p class="big" style="font-size:1.05rem">서술형 '+(i+1)+'. '+esc(e.q)+'</p><textarea id="es'+i+'" aria-label="서술형 '+(i+1)+' 답안" placeholder="답을 먼저 써 봅니다."></textarea>'+
+      answerHelp('essay-help-'+i,esc(hint),'<div class="fb ok"><b>모범 답안</b><br>'+esc(e.model)+'</div><div class="rub" style="margin-top:8px"><b>스스로 채점하기</b>'+rubric+'<p id="sc'+i+'" class="muted" role="status">0 / 5점</p></div>')+'</section>';
+  }).join('')+'<div class="row" id="nx">'+(isDone(l.no,'essay')?nextBtn(l.no,'essay'):'')+'</div>';
+  function qualify(i){
+    if($('#essay-help-'+i+'-answer',el).hidden||$('#es'+i,el).value.trim().length<10)return;
+    reviewed[i]=true;
+    if(Object.keys(reviewed).length===l.essay.length){mark(l.no,'essay',20);$('#nx',el).innerHTML=nextBtn(l.no,'essay');refreshTabs(l.no)}
+  }
+  wireAnswerHelp(el,function(id){qualify(+id.split('-').pop())});
+  l.essay.forEach(function(e,i){
+    $('#es'+i,el).addEventListener('input',function(){qualify(i)});
+    var inputs=el.querySelectorAll('[data-e="'+i+'"]');
+    inputs.forEach(function(c){c.onchange=function(){var s=0;inputs.forEach(function(x){if(x.checked)s+=+x.dataset.p});$('#sc'+i,el).textContent=s+' / 5점'}});
+  });
 }
 function initials(a){return a.map(function(s){return s.trim().charAt(0)}).join('·')}
 function stMn(l,el){
@@ -406,7 +597,7 @@ function viewExam(){
         return '<tr><td>'+esc(e.name)+'</td><td>'+st+'</td><td><button class="btn" style="padding:3px 10px" data-el="'+k+'">풀기</button></td></tr>'}).join('')+'</table></section>'});
     el.innerHTML=out;
     el.querySelectorAll('[data-el]').forEach(function(b){b.onclick=function(){var e=E[+b.dataset.el];$('#app').innerHTML='<section class="card"><small class="muted">'+pad(e.l.no)+' '+esc(e.l.title)+'</small><h1 style="font-size:1.25rem">'+esc(e.name)+'</h1></section><section class="card" id="stage"></section>';
-      quiz($('#stage'),shuffle(e.items),{clear:true,done:function(s){$('#stage').innerHTML='<p class="big">'+s+' / '+e.items.length+' 정답</p><p class="muted">틀렸다면 이 요소의 핵심 정리를 다시 읽고 한 번 더 풉니다.</p><div class="row"><button class="btn pri" data-go="exam">범위 점검표로</button><button class="btn ghost" data-go="lesson-'+pad(e.l.no)+'">'+pad(e.l.no)+' 차시 핵심 정리</button></div>';if(s===e.items.length)burst()}})}});
+      quiz($('#stage'),shuffle(e.items),{clear:true,done:function(s){$('#stage').innerHTML='<p class="big">'+s+' / '+e.items.length+' 정답</p><p class="muted">틀렸다면 이 요소의 핵심 정리를 다시 읽고 한 번 더 풉니다.</p><div class="row"><button class="btn pri" data-go="exam">범위 점검표로</button><button class="btn ghost" data-go="lesson-'+pad(e.l.no)+'">'+pad(e.l.no)+' 차시 학습 모드</button></div>';if(s===e.items.length)burst()}})}});
   } else if(tab==='mock'){
     el.innerHTML='<section class="card"><h2>전 범위 모의고사</h2><p>20문항입니다. 19차시에서 한 문항씩, 그리고 가장 약한 차시에서 한 문항이 더 나옵니다. 아직 못 맞힌 문항이 먼저 나오므로 풀 때마다 구성이 달라집니다.</p><p class="muted">권장 시간 30분'+(S.mock!=null?' · 최고 점수 '+S.mock+' / 20':'')+'</p><div class="row"><button class="btn pri" id="mk">모의고사 시작</button></div></section>';
     $('#mk').onclick=function(){
@@ -474,7 +665,7 @@ function burst(){
 }
 /* ---------- wiring ---------- */
 document.addEventListener('click',function(e){var b=e.target.closest('[data-go]');if(b){go(b.dataset.go);return}var s=e.target.closest('[data-step]');if(s&&ui.no){ui.step=s.dataset.step;viewLesson(ui.no,ui.step)}});
-window.addEventListener('hashchange',function(){ui.step='sum';route()});
+window.addEventListener('hashchange',route);
 load();showXP();initCloud(0);
 fetch('data.json').then(function(r){return r.json()}).then(function(j){D=j[0];route()}).catch(function(){$('#app').innerHTML='<div class="card">학습 자료를 불러오지 못했습니다. 페이지를 새로 고쳐 주세요.</div>'});
 </script>
