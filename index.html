@@ -381,7 +381,7 @@ function stSum(l,el){
     lessonSummary(l,function(a,i){
       answers.push(a);var name='빈칸 '+(i+1), id='b'+i;
       if(!d.choices[i])d.choices[i]=sumChoices(a);
-      var select='<select class="blk" id="'+id+'" aria-label="'+name+'"><option value="">고르기</option>'+d.choices[i].map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>'}).join('')+'</select>';
+      var select='<select class="blk" id="'+id+'" aria-label="'+name+'"><option value="" hidden aria-label="미선택">&#160;</option>'+d.choices[i].map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>'}).join('')+'</select>';
       var input='<input class="blk" id="'+id+'" type="text" autocomplete="off" aria-label="'+name+'" style="width:'+Math.min(13,Math.max(4,a.length*1.08+1.5))+'em">';
       return '<span class="blank-unit">'+(mode==='pick'?select:input)+'</span>'+answerHelp('blank-help-'+i, esc(blankHint(a)), '<b>정답: '+esc(a)+'</b>',true,name);
     })+
